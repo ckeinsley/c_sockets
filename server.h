@@ -18,3 +18,4 @@ int setup(int* sockfd);
 void sigchld_handler(int s);
 void *get_in_addr(struct sockaddr *sa);
 void run(int sockfd);
+void handle_client(int fd);

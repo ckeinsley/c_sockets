@@ -1,6 +1,6 @@
 all: client server
 
-client: client.c
+client: client.c client.h
 	gcc client.c -o client
 
 server: server.c server.h

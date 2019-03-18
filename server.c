@@ -1,6 +1,6 @@
 #include "server.h"
 
-char* PORT;
+char *PORT;
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
@@ -16,9 +16,9 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-int setup(int* sockfd) {
+int setup(int *sockfd) {
     *sockfd = bind_socket();
-    
+
     if (listen(*sockfd, BACKLOG) == -1) {
         perror("listen");
         exit(1);
@@ -77,7 +77,7 @@ int bind_socket() {
         break;
     }
 
-    freeaddrinfo(servinfo);  // all done with this 
+    freeaddrinfo(servinfo);  // all done with this
     if (p == NULL) {
         fprintf(stderr, "server: failed to bind\n");
         exit(1);
@@ -126,12 +126,20 @@ void run(int sockfd) {
 
         if (!fork()) {      // this is the child process
             close(sockfd);  // child doesn't need the listener
-            if (send(new_fd, "Hello, world!", 13, 0) == -1)
-                perror("send");
-            close(new_fd);
-            exit(0);
+            handle_client(new_fd);
         }
         close(new_fd);  // parent doesn't need this
     }
 }
 
+void handle_client(int fd) {
+    if (send(fd, "Hello, friend! Welcome to a CrapTP. It's like FTP, but worse!", 62, 0) == -1)
+        perror("send");
+
+    // while(1) {
+        //// Recieve message and handle them
+    // }
+
+    close(fd);
+    exit(0);
+}
