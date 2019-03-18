@@ -133,13 +133,59 @@ void run(int sockfd) {
 }
 
 void handle_client(int fd) {
+    char command[MAXDATASIZE];
+
     if (send(fd, "Hello, friend! Welcome to a CrapTP. It's like FTP, but worse!", 62, 0) == -1)
         perror("send");
 
-    // while(1) {
-        //// Recieve message and handle them
-    // }
+    int quit;
+    while (1) {
+        recv_command(fd, command);
+        quit = handle_command(fd, command);
+        if (quit) {
+            break;
+        }
+    }
 
     close(fd);
     exit(0);
+}
+
+void recv_command(int fd, char* command) {
+    int numbytes;
+    if ((numbytes = recv(fd, command, MAXDATASIZE - 1, 0)) == -1) {
+        perror("recv");
+        exit(1);
+    }
+
+    command[numbytes] = '\0';
+}
+
+int handle_command(int fd, char *command) {
+    char buffer[MAXDATASIZE];
+    printf("Received Command: %s\n", command);
+
+    if (startswith("echo ", command)) {
+        echo_to_client(fd, command + 5);
+        return 0;
+    }
+
+    sprintf(buffer, "Unknown Command: %s", command);
+    echo_to_client(fd, buffer);
+    return 0;
+}
+
+int startswith(char *pre, char *test) {
+    return strncmp(pre, test, strlen(pre)) == 0;
+}
+
+void echo_to_client(int fd, char *text) {
+    if (send(fd, text, strlen(text), 0) == -1)
+        perror("send");
+    send_termination(fd);
+}
+
+void send_termination(int fd) {
+    if (send(fd, "~!~DONE~!~", 11, 0) == -1)
+        perror("send");
 }

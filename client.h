@@ -10,10 +10,10 @@
 #include <sys/socket.h>
 
 #include <arpa/inet.h>
-#define MAXDATASIZE 100
+#define MAXDATASIZE 150
 
 int connect_to_server(char* hostname, char* port);
 void communicate_with_server(int sockfd);
 char* recv_command();
-int handle_command(char* command);
-int startswith(char* pre, char* test);
+int handle_command(int fd, char* command);
+void send_command(int fd, char* text);
