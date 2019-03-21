@@ -1,6 +1,7 @@
 #include "server.h"
 
 char *PORT;
+char s[INET6_ADDRSTRLEN];  // Globally track the address of the client connecting so our fork knows
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
@@ -107,7 +108,6 @@ void *get_in_addr(struct sockaddr *sa) {
 void run(int sockfd) {
     int new_fd;
     socklen_t sin_size;
-    char s[INET6_ADDRSTRLEN];
     struct sockaddr_storage their_addr;
 
     printf("server: waiting for connections...\n");
@@ -140,6 +140,9 @@ void handle_client(int fd) {
 
     int quit;
     while (1) {
+        for (int i = 0; i < MAXDATASIZE; i++) {
+            command[i] = 0;
+        }
         recv_command(fd, command);
         quit = handle_command(fd, command);
         if (quit) {
@@ -151,7 +154,7 @@ void handle_client(int fd) {
     exit(0);
 }
 
-void recv_command(int fd, char* command) {
+void recv_command(int fd, char *command) {
     int numbytes;
     if ((numbytes = recv(fd, command, MAXDATASIZE - 1, 0)) == -1) {
         perror("recv");
@@ -163,10 +166,19 @@ void recv_command(int fd, char* command) {
 
 int handle_command(int fd, char *command) {
     char buffer[MAXDATASIZE];
+    if (command[0] == '\0') {
+        printf("Client at %s Disconnected\n", s);
+        return 1;
+    }
     printf("Received Command: %s\n", command);
 
     if (startswith("echo ", command)) {
         echo_to_client(fd, command + 5);
+        return 0;
+    }
+
+    if (strcmp("moby dick", command) == 0) {
+        moby_dick(fd);
         return 0;
     }
 
@@ -185,7 +197,68 @@ void echo_to_client(int fd, char *text) {
     send_termination(fd);
 }
 
+void moby_dick(int fd) {
+    send_file(fd, "moby_dick.txt");
+}
+
+void send_file(int fd, char *file_name) {
+    int fsize;
+    int MAXBUFLEN = 50000;
+    size_t newLen;
+    char *term_code = "~!~DONE~!~";
+    char source[MAXBUFLEN + 12];
+
+    FILE *fp = fopen(file_name, "r");
+    if (fp != NULL) {
+        newLen = fread(source, sizeof(char), MAXBUFLEN, fp);
+        if (ferror(fp) != 0) {
+            perror("Error reading file");
+        }
+        fclose(fp);
+    }
+
+    for (int i = 0; i < strlen(term_code); i++) {
+        source[newLen++] = term_code[i];
+    }
+    source[newLen++] = '\0';
+
+    fsize = newLen;
+    if (sendall(fd, source, &fsize) == -1) {
+        perror("sendall");
+    }
+}
+
 void send_termination(int fd) {
-    if (send(fd, "~!~DONE~!~", 11, 0) == -1)
-        perror("send");
+    int bytes_sent = 0;
+    char term_string[150];
+    char *term_code = "~!~DONE~!~";
+    int i;
+    for (i = 0; i < 10; i++) {
+        term_string[i] = term_code[i];
+    }
+    for (i; i < 150; i++) {
+        term_string[i] = '\0';
+    }
+
+    while ((bytes_sent = send(fd, term_code, 150, 0)) != 150)
+        printf("Only sent %d bytes\n", bytes_sent);
+}
+
+int sendall(int s, char *buf, int *len) {
+    int total = 0;         // how many bytes we've sent
+    int bytesleft = *len;  // how many we have left to send
+    int n;
+
+    while (total < *len) {
+        n = send(s, buf + total, bytesleft, 0);
+        if (n == -1) {
+            break;
+        }
+        total += n;
+        bytesleft -= n;
+    }
+
+    *len = total;  // return number actually sent here
+
+    return n == -1 ? -1 : 0;  // return -1 on failure, 0 on success
 }

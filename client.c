@@ -104,6 +104,11 @@ char* recv_command() {
 }
 
 int handle_command(int fd, char* command) {
+    if (strcmp(command, "quit()") == 0 || strcmp(command, ";;;") == 0) {
+        printf("Closing Connection\n");
+        close(fd);
+        return 1;
+    }
     if (command[0] != '\0') {
         send_command(fd, command);
     }
@@ -114,32 +119,38 @@ void send_command(int fd, char* text) {
     int numbytes;
     char buf[MAXDATASIZE];
 
+    // send until all the bytes go through
     if (send(fd, text, strlen(text), 0) == -1)
         perror("send");
 
     while (1) {
-        numbytes = recv(fd, buf, MAXDATASIZE - 1, 0);
+        for (int i = 0; i < MAXDATASIZE; i++) {
+            buf[i] = 0;
+        }
 
+        numbytes = recv(fd, buf, MAXDATASIZE - 1, 0);
+        if (numbytes == 0) {
+            perror("Server Killed My Connection :(");
+        }
         if (numbytes == -1) {
             perror("recv");
-            exit(1);
         }
-        buf[numbytes] = '\0';
-        if (buf[0] == '\0') {
-            perror("Server Closed Connection");
-            exit(1);
+        if (buf[0] <= 8) {
+            continue;
         }
 
-        if (strstr(buf, "~!~DONE~!~") != NULL) { // in case DONE gets stuck on a message
-            buf[numbytes - 11] = '\0';
+        buf[numbytes] = '\0';
+
+        char* p = strstr(buf, "~!~DONE~!~");
+        if (p != NULL) {  // in case DONE gets stuck on a message
+            buf[p - buf] = '\0';
             if (buf[0] == '\0') {
                 break;
             }
 
-            printf("Received from server: %s\n", buf);
+            printf("%s\n", buf);
             break;
         }
-
-        printf("Received from server: %s\n", buf);
+        printf("%s\n", buf);
     }
 }
