@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <dirent.h>
 
 #define BACKLOG 10
 #define MAXDATASIZE 150
@@ -31,3 +32,4 @@ void send_termination(int fd);
 void moby_dick(int fd);
 int sendall(int s, char* buf, int* len);
 void send_file(int fd, char* file_name);
+void list_files(int fd);

@@ -182,6 +182,11 @@ int handle_command(int fd, char *command) {
         return 0;
     }
 
+    if (strcmp("ls", command) == 0) {
+        list_files(fd);
+        return 0;
+    }
+
     sprintf(buffer, "Unknown Command: %s", command);
     echo_to_client(fd, buffer);
     return 0;
@@ -199,6 +204,32 @@ void echo_to_client(int fd, char *text) {
 
 void moby_dick(int fd) {
     send_file(fd, "moby_dick.txt");
+}
+
+void list_files(int fd) {
+    char* directory = "./files";
+    char buf[1000];
+    int buf_index = 0;
+    int str_index = 0;
+
+    DIR *d;
+    struct dirent *dir;
+    d = opendir(directory);
+    if (d != NULL) {
+        while ((dir = readdir(d)) != NULL) {
+            if (dir->d_name[0] != '.') {
+                while (dir->d_name[str_index] != '\0') {
+                    buf[buf_index++] = dir->d_name[str_index++];
+                }
+                str_index = 0;
+                buf[buf_index++] = '\n';
+            }
+        }
+        buf[buf_index++] = '\0';
+        send(fd, buf, strlen(buf), 0);
+        closedir(d);
+    }
+    send_termination(fd);
 }
 
 void send_file(int fd, char *file_name) {
