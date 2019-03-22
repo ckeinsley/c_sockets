@@ -110,7 +110,7 @@ int handle_command(int fd, char* command) {
         return 1;
     }
 
-    if (startswith(command, "download")) {
+    if (startswith("download", command)) {
         recv_file(fd, command);
         return 0;
     }
@@ -167,7 +167,9 @@ void recv_file(int fd, char* command) {
     char buf[MAXDATASIZE];
     char file_buf[50000];
     FILE *fp;
+    int flag = 0;
 
+    printf("downloading a file\n");
     // send until all the bytes go through
     if (send(fd, command, strlen(command), 0) == -1)
         perror("send");
@@ -189,31 +191,31 @@ void recv_file(int fd, char* command) {
         }
 
         buf[numbytes] = '\0';
-
         char* p = strstr(buf, "~!~DONE~!~");
         if (p != NULL) {  // in case DONE gets stuck on a message
             buf[p - buf] = '\0';
-            if (buf[0] == '\0') {
-                break;
-            }
-
-            printf("%s\n", buf);
-            break;
+            flag = 1;
+            numbytes = numbytes - 11;
         }
-        //printf("%s\n", buf);
-        for (int i=0; i < numbytes; i++,file_buf_index++) {
+        for (int i=0; i < numbytes; i++) {
             file_buf[file_buf_index] = buf[i];
+            file_buf_index++;
+        }
+        if (flag) {
+            break;
         }
     }
 
-    fp = fopen(command+9, "wb");
+    fp = fopen("test_download", "wb");
     if (!fp) {
         printf("Unable to open file to write\n");
         return; 
     }
 
-    fwrite((void*)buf, file_buf_index+1, sizeof(char), fp);
-    
+    //fwrite((void*)buf, file_buf_index+1, sizeof(char), fp);
+    for (int i=0; i < file_buf_index; i++) {
+        fputc(buf[i], fp);
+    }
     fclose(fp);
 
     printf("File downloaded\n");
