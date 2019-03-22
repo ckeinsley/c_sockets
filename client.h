@@ -19,3 +19,5 @@ void communicate_with_server(int sockfd);
 char* recv_command();
 int handle_command(int fd, char* command);
 void send_command(int fd, char* text);
+int startswith(char *pre, char *test);
+void recv_file(int fd, char* command);

@@ -109,6 +109,12 @@ int handle_command(int fd, char* command) {
         close(fd);
         return 1;
     }
+
+    if (startswith(command, "download")) {
+        recv_file(fd, command);
+        return 0;
+    }
+
     if (command[0] != '\0') {
         send_command(fd, command);
     }
@@ -153,4 +159,66 @@ void send_command(int fd, char* text) {
         }
         printf("%s\n", buf);
     }
+}
+
+void recv_file(int fd, char* command) {
+    int numbytes;
+    int file_buf_index = 0;
+    char buf[MAXDATASIZE];
+    char file_buf[50000];
+    FILE *fp;
+
+    // send until all the bytes go through
+    if (send(fd, command, strlen(command), 0) == -1)
+        perror("send");
+
+    while (1) {
+        for (int i = 0; i < MAXDATASIZE; i++) {
+            buf[i] = 0;
+        }
+
+        numbytes = recv(fd, buf, MAXDATASIZE - 1, 0);
+        if (numbytes == 0) {
+            perror("Server Killed My Connection :(");
+        }
+        if (numbytes == -1) {
+            perror("recv");
+        }
+        if (buf[0] <= 8) {
+            continue;
+        }
+
+        buf[numbytes] = '\0';
+
+        char* p = strstr(buf, "~!~DONE~!~");
+        if (p != NULL) {  // in case DONE gets stuck on a message
+            buf[p - buf] = '\0';
+            if (buf[0] == '\0') {
+                break;
+            }
+
+            printf("%s\n", buf);
+            break;
+        }
+        //printf("%s\n", buf);
+        for (int i=0; i < numbytes; i++,file_buf_index++) {
+            file_buf[file_buf_index] = buf[i];
+        }
+    }
+
+    fp = fopen(command+9, "wb");
+    if (!fp) {
+        printf("Unable to open file to write\n");
+        return; 
+    }
+
+    fwrite((void*)buf, file_buf_index+1, sizeof(char), fp);
+    
+    fclose(fp);
+
+    printf("File downloaded\n");
+}
+
+int startswith(char *pre, char *test) {
+    return strncmp(pre, test, strlen(pre)) == 0;
 }

@@ -187,6 +187,11 @@ int handle_command(int fd, char *command) {
         return 0;
     }
 
+    if (startswith("download", command)) {
+        send_file(fd, command + 9);
+        return 0;
+    }
+
     sprintf(buffer, "Unknown Command: %s", command);
     echo_to_client(fd, buffer);
     return 0;
