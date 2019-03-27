@@ -122,105 +122,97 @@ int handle_command(int fd, char* command) {
 }
 
 void send_command(int fd, char* text) {
-    int numbytes;
-    char buf[MAXDATASIZE];
-
-    // send until all the bytes go through
-    if (send(fd, text, strlen(text), 0) == -1)
+    // Send command
+    if (send(fd, text, strlen(text), 0) == -1) {
         perror("send");
-
-    while (1) {
-        for (int i = 0; i < MAXDATASIZE; i++) {
-            buf[i] = 0;
-        }
-
-        numbytes = recv(fd, buf, MAXDATASIZE - 1, 0);
-        if (numbytes == 0) {
-            perror("Server Killed My Connection :(");
-        }
-        if (numbytes == -1) {
-            perror("recv");
-        }
-        if (buf[0] <= 8) {
-            continue;
-        }
-
-        buf[numbytes] = '\0';
-
-        char* p = strstr(buf, "~!~DONE~!~");
-        if (p != NULL) {  // in case DONE gets stuck on a message
-            buf[p - buf] = '\0';
-            if (buf[0] == '\0') {
-                break;
-            }
-
-            printf("%s\n", buf);
-            break;
-        }
-        printf("%s\n", buf);
+        exit(-1);
     }
+
+    // Recieve payload size
+    int payload_size = receive_payload_size(fd);
+
+    // Send confirmation
+    if ((send(fd, "Yep", 4, 0)) == -1) {
+        perror("couldn't send confirmation");
+        exit(-1);
+    }
+
+    // recieve data
+    char payload[payload_size + 1];
+    recieve_payload(fd, payload_size, payload);
+    printf("%s\n", payload);
+}
+
+int receive_payload_size(int fd) {
+    int32_t nonconverted_payload_size;
+    char* data = (char*)&nonconverted_payload_size;
+    int left = sizeof(nonconverted_payload_size);
+    int received;
+    do {
+        received = recv(fd, data, left, 0);
+        if (received < 0) {
+            perror("unable to recieve int");
+            exit(-1);
+        }
+        left -= received;
+        data += received;
+
+    } while (left > 0);
+    return ntohl(nonconverted_payload_size);
+}
+
+void recieve_payload(int fd, int payload_size, char* payload) {
+    int left = payload_size;
+    char* data = payload;
+    int received = 0;
+    do {
+        received = recv(fd, data, left, 0);
+        if (received < 0) {
+            perror("unable to recieve int");
+            exit(-1);
+        }
+        left -= received;
+        data += received;
+
+    } while (left > 0);
+    payload[payload_size + 1] = '\0';
 }
 
 void recv_file(int fd, char* command) {
-    int numbytes;
-    int file_buf_index = 0;
-    char buf[MAXDATASIZE];
-    char file_buf[50000];
-    FILE *fp;
-    int flag = 0;
-
-    printf("downloading a file\n");
-    // send until all the bytes go through
-    if (send(fd, command, strlen(command), 0) == -1)
+    // send download request
+    if (send(fd, command, strlen(command), 0) == -1) {
         perror("send");
-
-    while (1) {
-        for (int i = 0; i < MAXDATASIZE; i++) {
-            buf[i] = 0;
-        }
-
-        numbytes = recv(fd, buf, MAXDATASIZE - 1, 0);
-        if (numbytes == 0) {
-            perror("Server Killed My Connection :(");
-        }
-        if (numbytes == -1) {
-            perror("recv");
-        }
-        if (buf[0] <= 8) {
-            continue;
-        }
-
-        buf[numbytes] = '\0';
-        char* p = strstr(buf, "~!~DONE~!~");
-        if (p != NULL) {  // in case DONE gets stuck on a message
-            buf[p - buf] = '\0';
-            flag = 1;
-            numbytes = numbytes - 11;
-        }
-        for (int i=0; i < numbytes; i++) {
-            file_buf[file_buf_index] = buf[i];
-            file_buf_index++;
-        }
-        if (flag) {
-            break;
-        }
+        exit(-1);
     }
 
-    fp = fopen("test_download", "wb");
+    // Recieve payload size
+    int payload_size = receive_payload_size(fd);
+
+    // Send confirmation
+    if ((send(fd, "Yep", 4, 0)) == -1) {
+        perror("couldn't send confirmation");
+        exit(-1);
+    }
+
+    // recieve data
+    char payload[payload_size + 1];
+    recieve_payload(fd, payload_size, payload);
+
+    FILE* fp = fopen(command+9, "wb");
     if (!fp) {
         printf("Unable to open file to write\n");
-        return; 
+        return;
     }
 
     //fwrite((void*)buf, file_buf_index+1, sizeof(char), fp);
-    for (int i=0; i < file_buf_index; i++) {
-        fputc(buf[i], fp);
+    for (int i = 0; i < payload_size; i++) {
+        fputc(payload[i], fp);
     }
     fclose(fp);
 
     printf("File downloaded\n");
 }
 
-int startswith(char *pre, char *test) {
+int startswith(char* pre, char* test) {
     return strncmp(pre, test, strlen(pre)) == 0;
 }

@@ -135,8 +135,9 @@ void run(int sockfd) {
 void handle_client(int fd) {
     char command[MAXDATASIZE];
 
-    if (send(fd, "Hello, friend! Welcome to a CrapTP. It's like FTP, but worse!", 62, 0) == -1)
-        perror("send");
+    if ((send(fd, "Hello, friend! Welcome to a CrapTP. It's like FTP, but worse!", 62, 0)) == -1) {
+        perror("handshake");
+    }
 
     int quit;
     while (1) {
@@ -173,7 +174,7 @@ int handle_command(int fd, char *command) {
     printf("Received Command: %s\n", command);
 
     if (startswith("echo ", command)) {
-        echo_to_client(fd, command + 5);
+        send_to_client(fd, command + 5);
         return 0;
     }
 
@@ -193,7 +194,7 @@ int handle_command(int fd, char *command) {
     }
 
     sprintf(buffer, "Unknown Command: %s", command);
-    echo_to_client(fd, buffer);
+    send_to_client(fd, buffer);
     return 0;
 }
 
@@ -201,18 +202,12 @@ int startswith(char *pre, char *test) {
     return strncmp(pre, test, strlen(pre)) == 0;
 }
 
-void echo_to_client(int fd, char *text) {
-    if (send(fd, text, strlen(text), 0) == -1)
-        perror("send");
-    send_termination(fd);
-}
-
 void moby_dick(int fd) {
     send_file(fd, "moby_dick.txt");
 }
 
 void list_files(int fd) {
-    char* directory = "./files";
+    char *directory = "./files";
     char buf[1000];
     int buf_index = 0;
     int str_index = 0;
@@ -231,70 +226,63 @@ void list_files(int fd) {
             }
         }
         buf[buf_index++] = '\0';
-        send(fd, buf, strlen(buf), 0);
+        send_to_client(fd, buf);
         closedir(d);
     }
-    send_termination(fd);
 }
 
 void send_file(int fd, char *file_name) {
-    int fsize;
-    int MAXBUFLEN = 50000;
-    size_t newLen;
-    char *term_code = "~!~DONE~!~";
-    char source[MAXBUFLEN + 12];
+    char buf[MAXDATASIZE];
+    sprintf(buf,"files/%s", file_name);
 
-    FILE *fp = fopen(file_name, "r");
-    if (fp != NULL) {
-        newLen = fread(source, sizeof(char), MAXBUFLEN, fp);
-        if (ferror(fp) != 0) {
-            perror("Error reading file");
-        }
-        fclose(fp);
-    }
+    FILE *f = fopen(buf, "rb");
+    fseek(f, 0, SEEK_END);
+    long fsize = ftell(f);
+    fseek(f, 0, SEEK_SET);
 
-    for (int i = 0; i < strlen(term_code); i++) {
-        source[newLen++] = term_code[i];
-    }
-    source[newLen++] = '\0';
+    char *string = malloc(fsize + 1);
+    fread(string, fsize, 1, f);
+    fclose(f);
 
-    fsize = newLen;
-    if (sendall(fd, source, &fsize) == -1) {
-        perror("sendall");
-    }
+    string[fsize] = 0;
+
+    printf("read filed of size %li\n", fsize);
+    send_to_client(fd, string);
 }
 
-void send_termination(int fd) {
-    int bytes_sent = 0;
-    char term_string[150];
-    char *term_code = "~!~DONE~!~";
-    int i;
-    for (i = 0; i < 10; i++) {
-        term_string[i] = term_code[i];
-    }
-    for (i; i < 150; i++) {
-        term_string[i] = '\0';
-    }
-
-    while ((bytes_sent = send(fd, term_code, 150, 0)) != 150)
-        printf("Only sent %d bytes\n", bytes_sent);
-}
-
-int sendall(int s, char *buf, int *len) {
-    int total = 0;         // how many bytes we've sent
-    int bytesleft = *len;  // how many we have left to send
-    int n;
-
-    while (total < *len) {
-        n = send(s, buf + total, bytesleft, 0);
-        if (n == -1) {
-            break;
+void send_to_client(int fd, char *buf) {
+    // Send size of payload to client
+    int size_of_payload = strlen(buf);
+    int32_t converted_payload = htonl(size_of_payload);
+    int sent = 0;
+    int totalToSend = sizeof(converted_payload);
+    char *data = (char *)&converted_payload;
+    do {
+        sent = send(fd, data, totalToSend, 0);
+        if (sent < 0) {
+            perror("send int");
         }
-        total += n;
-        bytesleft -= n;
+        data += sent;
+        totalToSend -= sent;
+    } while (sent > 0);
+
+    // get size confirmation
+    char response[MAXDATASIZE];
+    if ((recv(fd, response, MAXDATASIZE - 1, 0)) == -1) {
+        perror("Client failed to recieve. Aborting");
+        exit(-1);
     }
 
-    *len = total;  // return number actually sent here
-
-    return n == -1 ? -1 : 0;  // return -1 on failure, 0 on success
+    // send data
+    totalToSend = size_of_payload;
+    sent = 0;
+    data = buf;
+    do {
+        sent = send(fd, data, totalToSend, 0);
+        if (sent < 0) {
+            perror("send data");
+        }
+        data += sent;
+        totalToSend -= sent;
+    } while (sent > 0);
 }
