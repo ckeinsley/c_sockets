@@ -31,4 +31,4 @@ void moby_dick(int fd);
 int sendall(int s, char* buf, int* len);
 void send_file(int fd, char* file_name);
 void list_files(int fd);
-void send_to_client(int fd, char* buf);
+void send_to_client(int fd, char* buf, int size);

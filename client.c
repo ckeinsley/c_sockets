@@ -188,6 +188,8 @@ void recv_file(int fd, char* command) {
     // Recieve payload size
     int payload_size = receive_payload_size(fd);
 
+    printf("size of file should be %d\n", payload_size);
+
     // Send confirmation
     if ((send(fd, "Yep", 4, 0)) == -1) {
         perror("couldn't send confirmation");

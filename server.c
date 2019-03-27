@@ -174,7 +174,7 @@ int handle_command(int fd, char *command) {
     printf("Received Command: %s\n", command);
 
     if (startswith("echo ", command)) {
-        send_to_client(fd, command + 5);
+        send_to_client(fd, command + 5, -1);
         return 0;
     }
 
@@ -194,7 +194,7 @@ int handle_command(int fd, char *command) {
     }
 
     sprintf(buffer, "Unknown Command: %s", command);
-    send_to_client(fd, buffer);
+    send_to_client(fd, buffer, -1);
     return 0;
 }
 
@@ -226,7 +226,7 @@ void list_files(int fd) {
             }
         }
         buf[buf_index++] = '\0';
-        send_to_client(fd, buf);
+        send_to_client(fd, buf, -1);
         closedir(d);
     }
 }
@@ -246,13 +246,16 @@ void send_file(int fd, char *file_name) {
 
     string[fsize] = 0;
 
-    printf("read filed of size %li\n", fsize);
-    send_to_client(fd, string);
+    printf("read file of size %li\n", fsize);
+    send_to_client(fd, string, fsize);
 }
 
-void send_to_client(int fd, char *buf) {
+void send_to_client(int fd, char *buf, int size) {
     // Send size of payload to client
     int size_of_payload = strlen(buf);
+    if (size != -1) {
+        size_of_payload = size;
+    }
     int32_t converted_payload = htonl(size_of_payload);
     int sent = 0;
     int totalToSend = sizeof(converted_payload);
