@@ -133,54 +133,13 @@ void send_command(int fd, char* text) {
         exit(-1);
     }
 
-    // Recieve payload size
+    // Receive payload size
     int payload_size = receive_payload_size(fd);
 
-    // Send confirmation
-    if ((send(fd, "Yep", 4, 0)) == -1) {
-        perror("couldn't send confirmation");
-        exit(-1);
-    }
-
-    // recieve data
+    // Receive data
     char payload[payload_size + 1];
-    recieve_payload(fd, payload_size, payload);
+    receive_payload(fd, payload_size, payload);
     printf("%s\n", payload);
-}
-
-int receive_payload_size(int fd) {
-    int32_t nonconverted_payload_size;
-    char* data = (char*)&nonconverted_payload_size;
-    int left = sizeof(nonconverted_payload_size);
-    int received;
-    do {
-        received = recv(fd, data, left, 0);
-        if (received < 0) {
-            perror("unable to recieve int");
-            exit(-1);
-        }
-        left -= received;
-        data += received;
-
-    } while (left > 0);
-    return ntohl(nonconverted_payload_size);
-}
-
-void recieve_payload(int fd, int payload_size, char* payload) {
-    int left = payload_size;
-    char* data = payload;
-    int received = 0;
-    do {
-        received = recv(fd, data, left, 0);
-        if (received < 0) {
-            perror("unable to recieve int");
-            exit(-1);
-        }
-        left -= received;
-        data += received;
-
-    } while (left > 0);
-    payload[payload_size + 1] = '\0';
 }
 
 void recv_file(int fd, char* command) {
@@ -190,28 +149,21 @@ void recv_file(int fd, char* command) {
         exit(-1);
     }
 
-    // Recieve payload size
+    // receive size
     int payload_size = receive_payload_size(fd);
-
     printf("size of file should be %d\n", payload_size);
 
-    // Send confirmation
-    if ((send(fd, "Yep", 4, 0)) == -1) {
-        perror("couldn't send confirmation");
-        exit(-1);
-    }
-
-    // recieve data
+    // receive data
     char payload[payload_size + 1];
-    recieve_payload(fd, payload_size, payload);
+    receive_payload(fd, payload_size, payload);
 
+    // create file
     FILE* fp = fopen(command+6, "wb");
     if (!fp) {
         printf("Unable to open file to write\n");
         return;
     }
 
-    //fwrite((void*)buf, file_buf_index+1, sizeof(char), fp);
     for (int i = 0; i < payload_size; i++) {
         fputc(payload[i], fp);
     }
@@ -254,7 +206,7 @@ void send_to_server(int fd, char* buf, int size, char* command) {
     // get size confirmation
     char response[MAXDATASIZE];
     if ((recv(fd, response, MAXDATASIZE - 1, 0)) == -1) {
-        perror("Client failed to recieve. Aborting");
+        perror("Client failed to receive. Aborting");
         exit(-1);
     }
 

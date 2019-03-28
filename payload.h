@@ -17,7 +17,8 @@
 #define MAXDATASIZE 150
 
 int receive_payload_size(int fd);
-char* recieve_payload(int fd, int payload_size, char* payload);
-int send_payload_size(int fd, int payload_size);
-int send_payload(int fd, int payload_size, char* payload);
-
+void receive_payload(int fd, int payload_size, char* payload);
+void send_payload_size(int fd, int payload_size);
+void send_payload(int fd, int payload_size, char* payload);
+void send_confirmation(int fd);
+void get_confirmation(int fd);

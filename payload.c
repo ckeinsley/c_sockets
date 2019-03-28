@@ -15,27 +15,29 @@ int receive_payload_size(int fd) {
         data += received;
 
     } while (left > 0);
+
+    send_confirmation(fd);
+
     return ntohl(nonconverted_payload_size);
 }
 
-char* recieve_payload(int fd, int payload_size, char* payload) {
+void receive_payload(int fd, int payload_size, char* payload) {
     int left = payload_size;
-    // char* data = payload;
+    char* data = payload;
     int received = 0;
     do {
-        received = recv(fd, payload, left, 0);
+        received = recv(fd, data, left, 0);
         if (received < 0) {
             perror("unable to recieve int");
             exit(-1);
         }
         left -= received;
-        payload += received;
+        data += received;
     } while (left > 0);
-    payload[payload_size + 1] = '\0';
-    return payload;
+    payload[payload_size] = '\0';
 }
 
-int send_payload_size(int fd, int payload_size) {
+void send_payload_size(int fd, int payload_size) {
     int32_t converted_payload = htonl(payload_size);
     int sent = 0;
     int totalToSend = sizeof(converted_payload);
@@ -46,37 +48,41 @@ int send_payload_size(int fd, int payload_size) {
         sent = send(fd, data, totalToSend, 0);
         if (sent < 0) {
             perror("send int");
+            exit(-1);
         }
         data += sent;
         totalToSend -= sent;
     } while (sent > 0);
 
     // get size confirmation
+    get_confirmation(fd);
+}
+
+void send_payload(int fd, int payload_size, char* payload) {
+    int sent = 0;
+    char* data = payload;
+    do {
+        sent = send(fd, data, payload_size, 0);
+        if (sent < 0) {
+            perror("send data");
+            exit(-1);
+        }
+        data += sent;
+        payload_size -= sent;
+    } while (sent > 0);
+}
+
+void send_confirmation(int fd) {
+    if ((send(fd, "Yep", 4, 0)) == -1) {
+        perror("couldn't send confirmation");
+        exit(-1);
+    }
+}
+
+void get_confirmation(int fd) {
     char response[MAXDATASIZE];
     if ((recv(fd, response, MAXDATASIZE - 1, 0)) == -1) {
         perror("Client failed to recieve. Aborting");
         exit(-1);
     }
-
-    return 0;
-}
-
-int send_payload(int fd, int payload_size, char* payload) {
-    // int32_t converted_payload = htonl(payload_size);
-    int sent = 0;
-    // int totalToSend = sizeof(converted_payload);
-    // char *data = (char *)&converted_payload;
-
-    // send data
-    // totalToSend = payload_size;
-    // sent = 0;
-    // data = payload;
-    do {
-        sent = send(fd, payload, payload_size, 0);
-        if (sent < 0) {
-            perror("send data");
-        }
-        payload += sent;
-        payload_size -= sent;
-    } while (sent > 0);
 }

@@ -10,8 +10,9 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-
 #include <arpa/inet.h>
+
+#include "payload.h"
 #define MAXDATASIZE 150
 
 int connect_to_server(char* hostname, char* port);
@@ -23,5 +24,5 @@ int startswith(char *pre, char *test);
 void recv_file(int fd, char* command);
 void send_file(int fd, char* command);
 void send_to_server(int fd, char* buf, int size, char* command); 
-int receive_payload_size(int fd);
-void recieve_payload(int fd, int payload_size, char* payload);
+// int receive_payload_size(int fd);
+// void recieve_payload(int fd, int payload_size, char* payload);

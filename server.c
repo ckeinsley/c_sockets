@@ -174,7 +174,7 @@ int handle_command(int fd, char *command) {
     printf("Received Command: %s\n", command);
 
     if (startswith("echo ", command)) {
-        send_to_client(fd, command + 5, -1);
+        send_to_client(fd, command + 5, strlen(command + 5));
         return 0;
     }
 
@@ -194,7 +194,7 @@ int handle_command(int fd, char *command) {
     }
 
     sprintf(buffer, "Unknown Command: %s", command);
-    send_to_client(fd, buffer, -1);
+    send_to_client(fd, buffer, strlen(buffer));
     return 0;
 }
 
@@ -226,7 +226,7 @@ void list_files(int fd) {
             }
         }
         buf[buf_index++] = '\0';
-        send_to_client(fd, buf, -1);
+        send_to_client(fd, buf, strlen(buf));
         closedir(d);
     }
 }
@@ -251,44 +251,6 @@ void send_file(int fd, char *file_name) {
 }
 
 void send_to_client(int fd, char *buf, int size) {
-    // Send size of payload to client
-    int size_of_payload = strlen(buf);
-    // size is only used for files currently
-    if (size != -1) {
-        size_of_payload = size;
-    }
-    int32_t converted_payload = htonl(size_of_payload);
-    int sent = 0;
-    int totalToSend = sizeof(converted_payload);
-    char *data = (char *)&converted_payload;
-
-    // send size of data
-    do {
-        sent = send(fd, data, totalToSend, 0);
-        if (sent < 0) {
-            perror("send int");
-        }
-        data += sent;
-        totalToSend -= sent;
-    } while (sent > 0);
-
-    // get size confirmation
-    char response[MAXDATASIZE];
-    if ((recv(fd, response, MAXDATASIZE - 1, 0)) == -1) {
-        perror("Client failed to recieve. Aborting");
-        exit(-1);
-    }
-
-    // send data
-    totalToSend = size_of_payload;
-    sent = 0;
-    data = buf;
-    do {
-        sent = send(fd, data, totalToSend, 0);
-        if (sent < 0) {
-            perror("send data");
-        }
-        data += sent;
-        totalToSend -= sent;
-    } while (sent > 0);
+    send_payload_size(fd, size);
+    send_payload(fd, size, buf);
 }
