@@ -236,10 +236,10 @@ void send_file(int fd, char* command) {
     string[fsize] = 0;
 
     printf("read file of size %li\n", fsize);
-    send_file_to_server(fd, string, fsize, command);
+    send_to_server(fd, string, fsize, command);
 }
 
-void send_file_to_server(int fd, char* buf, int size, char* command) {
+void send_to_server(int fd, char* buf, int size, char* command) {
     int32_t converted_payload = htonl(size);
     int sent = 0;
     int totalToSend = sizeof(converted_payload);

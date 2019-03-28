@@ -22,6 +22,6 @@ void send_command(int fd, char* text);
 int startswith(char *pre, char *test);
 void recv_file(int fd, char* command);
 void send_file(int fd, char* command);
-void send_file_to_server(int fd, char* buf, int size, char* command); 
+void send_to_server(int fd, char* buf, int size, char* command); 
 int receive_payload_size(int fd);
 void recieve_payload(int fd, int payload_size, char* payload);
