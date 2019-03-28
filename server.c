@@ -188,8 +188,8 @@ int handle_command(int fd, char *command) {
         return 0;
     }
 
-    if (startswith("download", command)) {
-        send_file(fd, command + 9);
+    if (startswith("iWant", command)) {
+        send_file(fd, command + 6);
         return 0;
     }
 
@@ -253,6 +253,7 @@ void send_file(int fd, char *file_name) {
 void send_to_client(int fd, char *buf, int size) {
     // Send size of payload to client
     int size_of_payload = strlen(buf);
+    // size is only used for files currently
     if (size != -1) {
         size_of_payload = size;
     }
@@ -260,6 +261,8 @@ void send_to_client(int fd, char *buf, int size) {
     int sent = 0;
     int totalToSend = sizeof(converted_payload);
     char *data = (char *)&converted_payload;
+
+    // send size of data
     do {
         sent = send(fd, data, totalToSend, 0);
         if (sent < 0) {

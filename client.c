@@ -110,8 +110,13 @@ int handle_command(int fd, char* command) {
         return 1;
     }
 
-    if (startswith("download", command)) {
+    if (startswith("iWant", command)) {
         recv_file(fd, command);
+        return 0;
+    }
+
+    if (startswith("uTake", command)) {
+        send_file(fd, command);
         return 0;
     }
 
@@ -200,7 +205,7 @@ void recv_file(int fd, char* command) {
     char payload[payload_size + 1];
     recieve_payload(fd, payload_size, payload);
 
-    FILE* fp = fopen(command+9, "wb");
+    FILE* fp = fopen(command+6, "wb");
     if (!fp) {
         printf("Unable to open file to write\n");
         return;
@@ -213,6 +218,56 @@ void recv_file(int fd, char* command) {
     fclose(fp);
 
     printf("File downloaded\n");
+}
+
+void send_file(int fd, char* command) {
+    char buf[MAXDATASIZE];
+    sprintf(buf,"files/%s", command+6);
+
+    FILE *f = fopen(buf, "rb");
+    fseek(f, 0, SEEK_END);
+    long fsize = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    char *string = malloc(fsize + 1);
+    fread(string, fsize, 1, f);
+    fclose(f);
+
+    string[fsize] = 0;
+
+    printf("read file of size %li\n", fsize);
+    send_file_to_server(fd, string, fsize, command);
+}
+
+void send_file_to_server(int fd, char* buf, int size, char* command) {
+    int32_t converted_payload = htonl(size);
+    int sent = 0;
+    int totalToSend = sizeof(converted_payload);
+    char *data = (char *)&converted_payload;
+
+    // send upload request
+    if (send(fd, command, strlen(command), 0) == -1) {
+        perror("send");
+        exit(-1);
+    }
+
+    // get size confirmation
+    char response[MAXDATASIZE];
+    if ((recv(fd, response, MAXDATASIZE - 1, 0)) == -1) {
+        perror("Client failed to recieve. Aborting");
+        exit(-1);
+    }
+
+    // send size of data
+    do {
+        sent = send(fd, data, totalToSend, 0);
+        if (sent < 0) {
+            perror("send int");
+        }
+        data += sent;
+        totalToSend -= sent;
+    } while (sent > 0);
+
 }
 
 int startswith(char* pre, char* test) {
