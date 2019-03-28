@@ -193,6 +193,11 @@ int handle_command(int fd, char *command) {
         return 0;
     }
 
+    if (startswith("uTake", command)) {
+        receive_file(fd, command + 6);
+        return 0;
+    }
+
     sprintf(buffer, "Unknown Command: %s", command);
     send_to_client(fd, buffer, strlen(buffer));
     return 0;
@@ -207,7 +212,7 @@ void moby_dick(int fd) {
 }
 
 void list_files(int fd) {
-    char *directory = "./files";
+    char *directory = "./server-files";
     char buf[1000];
     int buf_index = 0;
     int str_index = 0;
@@ -233,9 +238,13 @@ void list_files(int fd) {
 
 void send_file(int fd, char *file_name) {
     char buf[MAXDATASIZE];
-    sprintf(buf,"files/%s", file_name);
+    sprintf(buf,"server-files/%s", file_name);
 
     FILE *f = fopen(buf, "rb");
+    if (!f) {
+        printf("Unable to open file to read\n");
+        exit(-1);
+    }
     fseek(f, 0, SEEK_END);
     long fsize = ftell(f);
     fseek(f, 0, SEEK_SET);
@@ -253,4 +262,28 @@ void send_file(int fd, char *file_name) {
 void send_to_client(int fd, char *buf, int size) {
     send_payload_size(fd, size);
     send_payload(fd, size, buf);
+}
+
+void receive_file(int fd, char *file_name) {
+    send_confirmation(fd);    
+
+    int payload_size = receive_payload_size(fd);
+    char payload[payload_size + 1];
+    receive_payload(fd, payload_size, payload);
+
+    // create file
+    char buf[MAXDATASIZE];
+    sprintf(buf, "server-files/%s", file_name);
+    FILE* fp = fopen(buf, "wb");
+    if (!fp) {
+        printf("Unable to open file to write\n");
+        return;
+    }
+
+    for (int i = 0; i < payload_size; i++) {
+        fputc(payload[i], fp);
+    }
+    fclose(fp);
+
+    printf("File %s received\n", file_name);
 }

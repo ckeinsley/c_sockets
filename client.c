@@ -158,7 +158,9 @@ void recv_file(int fd, char* command) {
     receive_payload(fd, payload_size, payload);
 
     // create file
-    FILE* fp = fopen(command+6, "wb");
+    char buf[MAXDATASIZE];
+    sprintf(buf, "client-files/%s", command+6);
+    FILE* fp = fopen(buf, "wb");
     if (!fp) {
         printf("Unable to open file to write\n");
         return;
@@ -174,9 +176,13 @@ void recv_file(int fd, char* command) {
 
 void send_file(int fd, char* command) {
     char buf[MAXDATASIZE];
-    sprintf(buf,"files/%s", command+6);
+    sprintf(buf,"client-files/%s", command+6);
 
     FILE *f = fopen(buf, "rb");
+    if (!f) {
+        printf("Unable to open file to read\n");
+        return;
+    }
     fseek(f, 0, SEEK_END);
     long fsize = ftell(f);
     fseek(f, 0, SEEK_SET);
@@ -192,11 +198,6 @@ void send_file(int fd, char* command) {
 }
 
 void send_to_server(int fd, char* buf, int size, char* command) {
-    int32_t converted_payload = htonl(size);
-    int sent = 0;
-    int totalToSend = sizeof(converted_payload);
-    char *data = (char *)&converted_payload;
-
     // send upload request
     if (send(fd, command, strlen(command), 0) == -1) {
         perror("send");
@@ -204,22 +205,15 @@ void send_to_server(int fd, char* buf, int size, char* command) {
     }
 
     // get size confirmation
-    char response[MAXDATASIZE];
-    if ((recv(fd, response, MAXDATASIZE - 1, 0)) == -1) {
-        perror("Client failed to receive. Aborting");
-        exit(-1);
-    }
-
+    get_confirmation(fd);
+    
     // send size of data
-    do {
-        sent = send(fd, data, totalToSend, 0);
-        if (sent < 0) {
-            perror("send int");
-        }
-        data += sent;
-        totalToSend -= sent;
-    } while (sent > 0);
+    send_payload_size(fd, size);
 
+    // send data
+    send_payload(fd, size, buf);
+
+    printf("File uploaded\n");
 }
 
 int startswith(char* pre, char* test) {
