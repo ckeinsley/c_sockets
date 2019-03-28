@@ -1,4 +1,4 @@
-#include <payload.h>
+#include "payload.h"
 
 int receive_payload_size(int fd) {
     int32_t nonconverted_payload_size;
@@ -20,24 +20,23 @@ int receive_payload_size(int fd) {
 
 char* recieve_payload(int fd, int payload_size, char* payload) {
     int left = payload_size;
-    char* data = payload;
+    // char* data = payload;
     int received = 0;
     do {
-        received = recv(fd, data, left, 0);
+        received = recv(fd, payload, left, 0);
         if (received < 0) {
             perror("unable to recieve int");
             exit(-1);
         }
         left -= received;
-        data += received;
-
+        payload += received;
     } while (left > 0);
     payload[payload_size + 1] = '\0';
     return payload;
 }
 
 int send_payload_size(int fd, int payload_size) {
-    int32_t converted_payload = htonl(size_of_payload);
+    int32_t converted_payload = htonl(payload_size);
     int sent = 0;
     int totalToSend = sizeof(converted_payload);
     char *data = (char *)&converted_payload;
@@ -58,23 +57,26 @@ int send_payload_size(int fd, int payload_size) {
         perror("Client failed to recieve. Aborting");
         exit(-1);
     }
+
+    return 0;
 }
 
 int send_payload(int fd, int payload_size, char* payload) {
-    int32_t converted_payload = htonl(payload_size);
+    // int32_t converted_payload = htonl(payload_size);
     int sent = 0;
-    int totalToSend = sizeof(converted_payload);
+    // int totalToSend = sizeof(converted_payload);
+    // char *data = (char *)&converted_payload;
 
     // send data
-    totalToSend = payload_size;
-    sent = 0;
-    data = buf;
+    // totalToSend = payload_size;
+    // sent = 0;
+    // data = payload;
     do {
-        sent = send(fd, data, totalToSend, 0);
+        sent = send(fd, payload, payload_size, 0);
         if (sent < 0) {
             perror("send data");
         }
-        data += sent;
-        totalToSend -= sent;
+        payload += sent;
+        payload_size -= sent;
     } while (sent > 0);
 }

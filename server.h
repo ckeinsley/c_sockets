@@ -10,10 +10,11 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <dirent.h>
+
+#include "payload.h"
 
 #define BACKLOG 10
 #define MAXDATASIZE 150
