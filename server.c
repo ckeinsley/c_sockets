@@ -242,8 +242,11 @@ void send_file(int fd, char *file_name) {
 
     FILE *f = fopen(buf, "rb");
     if (!f) {
-        printf("Unable to open file to read\n");
-        exit(-1);
+        printf("Unable to open file '%s' to read\n", file_name);
+        char err[strlen(file_name) + 38 + 1];
+        sprintf(err, "ERROR 404: File '%s' not found on server", file_name);
+        send_error(fd, err);
+        return;
     }
     fseek(f, 0, SEEK_END);
     long fsize = ftell(f);
@@ -255,7 +258,7 @@ void send_file(int fd, char *file_name) {
 
     string[fsize] = 0;
 
-    printf("read file of size %li\n", fsize);
+    // printf("read file of size %li\n", fsize);
     send_to_client(fd, string, fsize);
 }
 
@@ -286,4 +289,10 @@ void receive_file(int fd, char *file_name) {
     fclose(fp);
 
     printf("File %s received\n", file_name);
+}
+
+void send_error(int fd, char* message) {
+    int payload_size = strlen(message);
+    send_payload_size(fd, payload_size); 
+    send_payload(fd, payload_size, message);
 }

@@ -34,3 +34,4 @@ void send_file(int fd, char* file_name);
 void list_files(int fd);
 void send_to_client(int fd, char* buf, int size);
 void receive_file(int fd, char* file_name);
+void send_error(int fd, char* message);

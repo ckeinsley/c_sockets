@@ -151,11 +151,17 @@ void recv_file(int fd, char* command) {
 
     // receive size
     int payload_size = receive_payload_size(fd);
-    printf("size of file should be %d\n", payload_size);
+    // printf("size of file should be %d\n", payload_size);
 
     // receive data
     char payload[payload_size + 1];
     receive_payload(fd, payload_size, payload);
+
+    // check for error
+    if (check_error(payload)) {
+        printf("%s\n", payload);
+        return;
+    }
 
     // create file
     char buf[MAXDATASIZE];
@@ -180,7 +186,7 @@ void send_file(int fd, char* command) {
 
     FILE *f = fopen(buf, "rb");
     if (!f) {
-        printf("Unable to open file to read\n");
+        printf("ERROR 404: File '%s' does not exist on client\n", command+6);
         return;
     }
     fseek(f, 0, SEEK_END);
@@ -193,7 +199,7 @@ void send_file(int fd, char* command) {
 
     string[fsize] = 0;
 
-    printf("read file of size %li\n", fsize);
+    // printf("read file of size %li\n", fsize);
     send_to_server(fd, string, fsize, command);
 }
 
@@ -214,6 +220,10 @@ void send_to_server(int fd, char* buf, int size, char* command) {
     send_payload(fd, size, buf);
 
     printf("File uploaded\n");
+}
+
+int check_error(char* buf) {
+    return startswith("ERROR 404:", buf);
 }
 
 int startswith(char* pre, char* test) {
