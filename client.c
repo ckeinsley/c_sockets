@@ -120,6 +120,11 @@ int handle_command(int fd, char* command) {
         return 0;
     }
 
+    if (startswith("ls", command)) {
+        list_files();
+        return 0;
+    }
+
     if (command[0] != '\0') {
         send_command(fd, command);
     }
@@ -140,6 +145,31 @@ void send_command(int fd, char* text) {
     char payload[payload_size + 1];
     receive_payload(fd, payload_size, payload);
     printf("%s\n", payload);
+}
+
+void list_files() {
+    char *directory = "./client-files";
+    char buf[1000];
+    int buf_index = 0;
+    int str_index = 0;
+
+    DIR *d;
+    struct dirent *dir;
+    d = opendir(directory);
+    if (d != NULL) {
+        while ((dir = readdir(d)) != NULL) {
+            if (dir->d_name[0] != '.') {
+                while (dir->d_name[str_index] != '\0') {
+                    buf[buf_index++] = dir->d_name[str_index++];
+                }
+                str_index = 0;
+                buf[buf_index++] = '\n';
+            }
+        }
+        buf[buf_index++] = '\0';
+        printf("%s\n", buf);
+        closedir(d);
+    }
 }
 
 void recv_file(int fd, char* command) {

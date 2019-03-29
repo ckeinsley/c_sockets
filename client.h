@@ -21,6 +21,7 @@ char* recv_command();
 int handle_command(int fd, char* command);
 void send_command(int fd, char* text);
 int startswith(char *pre, char *test);
+void list_files();
 void recv_file(int fd, char* command);
 void send_file(int fd, char* command);
 void send_to_server(int fd, char* buf, int size, char* command); 

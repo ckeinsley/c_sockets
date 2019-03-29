@@ -183,7 +183,7 @@ int handle_command(int fd, char *command) {
         return 0;
     }
 
-    if (strcmp("ls", command) == 0) {
+    if (strcmp("rls", command) == 0) {
         list_files(fd);
         return 0;
     }
