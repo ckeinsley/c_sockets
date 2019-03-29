@@ -14,6 +14,15 @@
 
 #include "payload.h"
 #define MAXDATASIZE 150
+#define HELP_TEXT "::::CrapTP Commands::::\n\
+help               'displays this message'\n\
+echo <string>      'server sends <string> back to client and client prints\n\
+ls                 'lists files in client-files folder on client'\n\
+rls                'lists files in server-files folder on server\n\
+iWant <filename>   'downloads <filename> from server and saves under client-files\n\
+uTake <filename>   'uploads <filename> from client to the server's server-files directory\n\
+quit()             'closes the client'\n\
+;;;                'same as quit()'\n"
 
 int connect_to_server(char* hostname, char* port);
 void communicate_with_server(int sockfd);

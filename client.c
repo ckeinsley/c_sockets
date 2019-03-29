@@ -125,6 +125,11 @@ int handle_command(int fd, char* command) {
         return 0;
     }
 
+    if (startswith("help", command)) {
+        printf("\n%s\n", HELP_TEXT);
+        return 0;
+    }
+
     if (command[0] != '\0') {
         send_command(fd, command);
     }
